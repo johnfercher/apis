@@ -15,4 +15,7 @@
 # vendor/
 
 # JetBrains
-/.idea
+.idea
+
+# Rust
+target
