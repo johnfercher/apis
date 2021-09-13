@@ -4,22 +4,24 @@ use std::sync::Arc;
 
 use serde::{Serialize, Deserialize};
 
-type Items = HashMap<String, i32>;
+type Orders = HashMap<String, Order>;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub(crate) struct Id {
-    pub(crate) name: String,
+pub struct Id {
+    pub name: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Item {
-    pub name: String,
-    pub quantity: i32,
+pub struct Order {
+    pub id: String,
+    pub label_code: String,
+    pub origin: String,
+    pub destiny: String,
 }
 
 #[derive(Clone)]
 pub struct Store {
-    pub grocery_list: Arc<RwLock<Items>>
+    pub grocery_list: Arc<RwLock<Orders>>
 }
 
 impl Store {
