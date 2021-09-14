@@ -1,21 +1,19 @@
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
-use rand::Rng;
 use crate::domain::entities::Order;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct CreateOrderRequest {
+pub struct OrderRequest {
+    pub label_code: String,
     pub origin: String,
     pub destiny: String,
 }
 
-impl CreateOrderRequest {
-    pub fn to_order(self) -> Order {
-        let label_code: u16 = rand::thread_rng().gen();
-
+impl OrderRequest {
+    pub fn to_order(self, id: String) -> Order {
         Order {
-            id: Uuid::new_v4().to_string(),
-            label_code: label_code.to_string(),
+            id,
+            label_code: self.label_code,
             origin: self.origin,
             destiny: self.destiny,
         }

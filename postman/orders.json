@@ -1,0 +1,119 @@
+{
+	"info": {
+		"_postman_id": "f127fff7-eb04-4a87-af5c-dfa75dcd9599",
+		"name": "Order",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Order",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"label_code\": \"1231245123451\",\n    \"origin\": \"RJ\",\n    \"destiny\": \"SP\" \n}"
+				},
+				"url": {
+					"raw": "localhost:3030/v1/orders",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"v1",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Order",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"label_code\": \"1231245123451\",\n    \"origin\": \"RJ\",\n    \"destiny\": \"SP\" \n}"
+				},
+				"url": {
+					"raw": "localhost:3030/v1/orders/37d4a606-c64f-4d93-8f7f-34cb70f3606c",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"v1",
+						"orders",
+						"37d4a606-c64f-4d93-8f7f-34cb70f3606c"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Orders",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "localhost:3030/v1/orders",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"v1",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Order",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:3030/v1/orders/0af2006e-7641-45eb-8976-87736ccd259e",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"v1",
+						"orders",
+						"0af2006e-7641-45eb-8976-87736ccd259e"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

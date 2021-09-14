@@ -1,5 +1,10 @@
 # APIs
 
+## Bechmarks
+```bash
+bash get_line_count.sh <extension> <path>  
+``` 
+
 ## RustAPI
 Based on Article: [Creating a Rest API in Rust With Warp][rustapi]
 
