@@ -1,5 +1,12 @@
 # APIs
 
+## Usage
+```bash
+bash generate_lines_quantity.sh v1
+bash generate_files_quantity.sh v1
+bash generate_bar_charts.sh v1
+```
+
 ## Requirements
 * [Requirements V1](docs/v1/requirements.md)
 
@@ -21,12 +28,6 @@ code in many programming languages.
 
 > Will be used to calculate output 1 (coded files count) and 2 (coded lines count);
 
-```bash
-cloc netcoreapi --exclude-dirs=bin,obj,Migrations
-cloc pythondjango --exclude-dir migrations
-cloc rustapi --exclude-dir=target
-```
-
 #### tsenart/vegeta
 [Vegeta][vegeta] is a versatile HTTP load testing tool built out of a need to
 drill HTTP services with a constant request rate. It can be used both as a command line utility
@@ -37,10 +38,6 @@ and a library.
 [gnuplot][gnuplot] is a portable command-line driven graphing utility for Linux, OS/2, MS Windows,
 OSX, VMS, and many other platforms.
 > Will be used to generate chart;
-
-```bash 
-bash generate_bar_charts.sh v1
-```
 
 ## References
 ### Rust
