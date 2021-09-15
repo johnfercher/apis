@@ -22,7 +22,7 @@ code in many programming languages.
 > Will be used to calculate output 1 (coded files count) and 2 (coded lines count);
 
 ```bash
-cloc netcoreapi
+cloc netcoreapi --exclude-dirs=bin,obj,Migrations
 cloc pythondjango --exclude-dir migrations
 cloc rustapi --exclude-dir=target
 ```
