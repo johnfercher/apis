@@ -1,11 +1,8 @@
+use super::schema::orders;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Id {
-    pub id: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Queryable, Insertable, Serialize, Deserialize)]
+#[table_name="orders"]
 pub struct Order {
     pub id: String,
     pub label_code: String,

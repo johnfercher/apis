@@ -41,9 +41,9 @@ OSX, VMS, and many other platforms.
 
 ## References
 ### Rust
-* [Creating a Rest API in Rust With Warp][rustapi]
+* [Creating a Rest API in Rust With Warp](https://blog.logrocket.com/creating-a-rest-api-in-rust-with-warp/)
+* [Rust API With Warp and Diesel](https://sgibala.com/01-01-rust-api-with-warp-and-diesel/)
 
-[rustapi]: https://blog.logrocket.com/creating-a-rest-api-in-rust-with-warp/
 [cloc]: https://github.com/AlDanial/cloc
 [vegeta]: https://github.com/tsenart/vegeta
 [gnuplot]: http://www.gnuplot.info/
