@@ -23,8 +23,11 @@ impl OrderMemRepository {
 
 #[async_trait]
 impl OrderRepository for OrderMemRepository {
-    async fn get_by_id(&self, _: String) -> Result<Order, Error> {
-        Err(Error::new(ErrorKind::AddrInUse, "bla"))
+    async fn get_by_id(&self, id: String) -> Result<Order, Error> {
+        match self.grocery_list.read().await.get(id.as_str()) {
+            Some(value) => Ok(value.clone()),
+            None => Err(Error::new(ErrorKind::AddrInUse, "bla"))
+        }
     }
 
     async fn search(&self) -> Result<Vec<Order>, Error> {

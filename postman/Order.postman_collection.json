@@ -87,6 +87,31 @@
 			"response": []
 		},
 		{
+			"name": "Get Order By Id",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "localhost:3030/v1/orders/cdbc2588-ca73-484e-a93c-f3156f9c2e88",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"v1",
+						"orders",
+						"cdbc2588-ca73-484e-a93c-f3156f9c2e88"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Delete Order",
 			"request": {
 				"method": "DELETE",

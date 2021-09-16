@@ -7,18 +7,23 @@ use crate::order_mem_repository::OrderMemRepository;
 use crate::domain::repositories::OrderRepository;
 use warp::filters::BoxedFilter;
 use uuid::Uuid;
+use std::io::Error;
 
 mod contracts;
 mod decodes;
 mod domain;
 mod order_mem_repository;
 
+#[derive(Debug)]
+struct FetchError;
+impl warp::reject::Reject for FetchError {}
+
 #[tokio::main]
 async fn main() {
     let order_mem_repository = OrderMemRepository::new();
     let order_mem_repository_filter = warp::any().map(move || order_mem_repository.clone());
 
-    let add_items = warp::post()
+    let add_order = warp::post()
         .and(warp::path("v1"))
         .and(warp::path("orders"))
         .and(warp::path::end())
@@ -26,14 +31,21 @@ async fn main() {
         .and(order_mem_repository_filter.clone())
         .and_then(add_order);
 
-    let get_items = warp::get()
+    let get_orders = warp::get()
         .and(warp::path("v1"))
         .and(warp::path("orders"))
         .and(warp::path::end())
         .and(order_mem_repository_filter.clone())
         .and_then(get_orders);
 
-    let update_item = warp::put()
+    let get_order_by_id = warp::get()
+        .and(warp::path("v1"))
+        .and(warp::path!("orders" / String))
+        .and(warp::path::end())
+        .and(order_mem_repository_filter.clone())
+        .and_then(get_order_by_id);
+
+    let update_order = warp::put()
         .and(warp::path("v1"))
         .and(warp::path!("orders" / String))
         .and(warp::path::end())
@@ -41,14 +53,14 @@ async fn main() {
         .and(order_mem_repository_filter.clone())
         .and_then(update_order);
 
-    let delete_item = warp::delete()
+    let delete_order = warp::delete()
         .and(warp::path("v1"))
         .and(warp::path!("orders" / String))
         .and(warp::path::end())
         .and(order_mem_repository_filter.clone())
         .and_then(delete_order);
 
-    let routes = add_items.or(get_items).or(delete_item).or(update_item);
+    let routes = add_order.or(get_orders).or(get_order_by_id).or(delete_order).or(update_order);
 
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3030))
@@ -58,23 +70,33 @@ async fn main() {
 async fn get_orders(
     repository: OrderMemRepository) -> Result<impl warp::Reply, warp::Rejection> {
 
-    let result = repository.search().await;
+    match repository.search().await {
+        Ok(v) => Ok(warp::reply::json(&v)),
+        Err(_) => Err(warp::reject::custom(FetchError))
+    }
+}
 
-    Ok(warp::reply::json(
-        &result.unwrap()
-    ))
+async fn get_order_by_id(
+    id: String,
+    repository: OrderMemRepository) -> Result<impl warp::Reply, warp::Rejection> {
+
+    match repository.get_by_id(id).await {
+        Ok(v) => Ok(warp::reply::json(&v)),
+        Err(_) => Err(warp::reject::custom(FetchError))
+    }
 }
 
 async fn delete_order(
     id: String,
     repository: OrderMemRepository) -> Result<impl warp::Reply, warp::Rejection> {
 
-    repository.delete(id).await;
-
-    Ok(warp::reply::with_status(
-        "Removed item from grocery list",
-        http::StatusCode::OK,
-    ))
+    match repository.delete(id).await {
+        Some(_) => Err(warp::reject::custom(FetchError)),
+        None => Ok(warp::reply::with_status(
+            "Removed order",
+            http::StatusCode::OK,
+        ))
+    }
 }
 
 async fn update_order(
@@ -83,12 +105,14 @@ async fn update_order(
     repository: OrderMemRepository) -> Result<impl warp::Reply, warp::Rejection> {
 
     let order = order_request.to_order(id);
-    repository.update(order).await;
 
-    Ok(warp::reply::with_status(
-        "Added items to the grocery list",
-        http::StatusCode::CREATED,
-    ))
+    match repository.update(order).await {
+        Some(_) => Err(warp::reject::custom(FetchError)),
+        None => Ok(warp::reply::with_status(
+            "Updated order",
+            http::StatusCode::OK,
+        ))
+    }
 }
 
 async fn add_order(
@@ -97,10 +121,11 @@ async fn add_order(
 
     let order = order_request.to_order(Uuid::new_v4().to_string());
 
-    repository.create(order).await;
-
-    Ok(warp::reply::with_status(
-        "Added items to the grocery list",
-        http::StatusCode::CREATED,
-    ))
+    match repository.create(order).await {
+        Some(_) => Err(warp::reject::custom(FetchError)),
+        None => Ok(warp::reply::with_status(
+            "Added order",
+            http::StatusCode::CREATED,
+        ))
+    }
 }
