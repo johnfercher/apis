@@ -1,106 +1,97 @@
-use warp::{Filter, http, Reply};
+mod lib;
+mod models;
+mod schema;
+mod order_repository;
+mod errors;
+mod order_service;
 
-use domain::entities::{Id, Order};
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
 
-use crate::contracts::OrderRequest;
-use crate::order_mem_repository::OrderMemRepository;
-use crate::domain::repositories::OrderRepository;
-use warp::filters::BoxedFilter;
-use uuid::Uuid;
+use models::*;
+use diesel::prelude::*;
 
-mod contracts;
-mod decodes;
-mod domain;
-mod order_mem_repository;
+use warp::{Filter, reject};
+
+use rustapi::{establish_connection, DbPool};
+use crate::order_repository::OrderRepository;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use crate::errors::{handle_rejection, AppError};
+use warp::http::StatusCode;
 
 #[tokio::main]
 async fn main() {
-    let order_mem_repository = OrderMemRepository::new();
-    let order_mem_repository_filter = warp::any().map(move || order_mem_repository.clone());
+    let sqlite_connection = establish_connection();
 
-    let add_items = warp::post()
-        .and(warp::path("v1"))
-        .and(warp::path("orders"))
-        .and(warp::path::end())
-        .and(decodes::decode_order_request_from_json())
-        .and(order_mem_repository_filter.clone())
-        .and_then(add_order);
-
-    let get_items = warp::get()
-        .and(warp::path("v1"))
-        .and(warp::path("orders"))
-        .and(warp::path::end())
-        .and(order_mem_repository_filter.clone())
-        .and_then(get_orders);
-
-    let update_item = warp::put()
-        .and(warp::path("v1"))
-        .and(warp::path!("orders" / String))
-        .and(warp::path::end())
-        .and(decodes::decode_order_request_from_json())
-        .and(order_mem_repository_filter.clone())
-        .and_then(update_order);
-
-    let delete_item = warp::delete()
-        .and(warp::path("v1"))
-        .and(warp::path!("orders" / String))
-        .and(warp::path::end())
-        .and(order_mem_repository_filter.clone())
-        .and_then(delete_order);
-
-    let routes = add_items.or(get_items).or(delete_item).or(update_item);
+    let routes = api_filters(sqlite_connection)
+        .recover(handle_rejection);
 
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3030))
         .await;
 }
 
-async fn get_orders(
-    repository: OrderMemRepository) -> Result<impl warp::Reply, warp::Rejection> {
-
-    let result = repository.search().await;
-
-    Ok(warp::reply::json(
-        &result.unwrap()
-    ))
+fn api_filters(pool: DbPool) -> impl Filter<Extract=impl warp::Reply, Error=warp::Rejection> + Clone  {
+    warp::path!("v1" / ..)   // Add path prefix /api/v1 to all our routes
+        .and(
+            add_order(pool.clone())
+                .or(get_order_by_id(pool.clone()))
+                .or(list_orders(pool.clone()))
+                .or(update_order(pool.clone()))
+                .or(delete_order(pool))
+        )
 }
 
-async fn delete_order(
-    id: String,
-    repository: OrderMemRepository) -> Result<impl warp::Reply, warp::Rejection> {
-
-    repository.delete(id).await;
-
-    Ok(warp::reply::with_status(
-        "Removed item from grocery list",
-        http::StatusCode::OK,
-    ))
+fn add_order(pool: DbPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("orders")
+        .and(warp::post())
+        .and(with_db_access_manager(pool))
+        .and(with_json_body::<Order>())
+        .and_then(order_service::add_order)
 }
 
-async fn update_order(
-    id: String,
-    mut order_request: OrderRequest,
-    repository: OrderMemRepository) -> Result<impl warp::Reply, warp::Rejection> {
-
-    let order = order_request.to_order(id);
-    repository.update(order).await;
-
-    Ok(warp::reply::with_status(
-        "Added items to the grocery list",
-        http::StatusCode::CREATED,
-    ))
+fn list_orders(pool: DbPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("orders")
+        .and(warp::get())
+        .and(with_db_access_manager(pool))
+        .and_then(order_service::list_orders)
 }
 
-async fn add_order(
-    order_request: OrderRequest,
-    repository: OrderMemRepository) -> Result<impl warp::Reply, warp::Rejection> {
+fn update_order(pool: DbPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("orders" / String )
+        .and(warp::put())
+        .and(with_db_access_manager(pool))
+        .and(with_json_body::<Order>())
+        .and_then(order_service::update)
+}
 
-    let order = order_request.to_order(Uuid::new_v4().to_string());
+fn delete_order(pool: DbPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("orders" / String )
+        .and(warp::delete())
+        .and(with_db_access_manager(pool))
+        .and_then(order_service::delete_order)
+}
 
-    repository.create(order).await;
+fn get_order_by_id(pool: DbPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("orders" / String )
+        .and(warp::get())
+        .and(with_db_access_manager(pool))
+        .and_then(order_service::get_order_by_id)
+}
 
-    Ok(warp::reply::with_status(
-        "Added items to the grocery list",
-        http::StatusCode::CREATED,
-    ))
+fn with_db_access_manager(pool: DbPool) -> impl Filter<Extract = (OrderRepository,), Error = warp::Rejection> + Clone {
+    warp::any()
+        .map(move || pool.clone())
+        .and_then(|pool: DbPool| async move {  match pool.get() {
+            Ok(conn) => Ok(OrderRepository::new(conn)),
+            Err(err) => Err(reject::custom(
+                AppError::new(format!("Error getting connection from pool: {}", err.to_string()).as_str(), StatusCode::NOT_FOUND))
+            ),
+        }})
+}
+
+fn with_json_body<T: DeserializeOwned + Send>() -> impl Filter<Extract = (T,), Error = warp::Rejection> + Clone {
+    warp::body::content_length_limit(1024 * 16).and(warp::body::json())
 }
