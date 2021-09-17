@@ -9,3 +9,14 @@ pub struct Order {
     pub origin: String,
     pub destiny: String,
 }
+
+#[derive(Debug, Serialize, Clone)]
+pub struct IdResponse {
+    pub id: String,
+}
+
+impl IdResponse {
+    pub fn new(id: String) -> IdResponse {
+        IdResponse { id }
+    }
+}

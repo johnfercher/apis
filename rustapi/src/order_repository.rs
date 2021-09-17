@@ -1,17 +1,17 @@
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
-use crate::errors::{ErrorType, AppError};
+use crate::errors::{AppError};
 use crate::models::Order;
-use crate::errors::ErrorType::NotFound;
+use warp::http::StatusCode;
 
-type PooledPg = PooledConnection<ConnectionManager<SqliteConnection>>;
+type PooledDb = PooledConnection<ConnectionManager<SqliteConnection>>;
 
 pub struct OrderRepository {
-    connection: PooledPg,
+    connection: PooledDb,
 }
 
 impl OrderRepository {
-    pub fn new(connection: PooledPg) -> OrderRepository {
+    pub fn new(connection: PooledDb) -> OrderRepository {
         OrderRepository {connection}
     }
 
@@ -37,7 +37,7 @@ impl OrderRepository {
             })?;
 
         match result.first() {
-            None => Err(AppError::new("while listing orders", NotFound)),
+            None => Err(AppError::new("while listing orders", StatusCode::NOT_FOUND)),
             Some(v) => Ok(v.clone())
         }
     }
@@ -64,7 +64,7 @@ impl OrderRepository {
             })?;
 
         if updated == 0 {
-            return Err(AppError::new("Book not found", ErrorType::NotFound))
+            return Err(AppError::new("Order not found", StatusCode::NOT_FOUND))
         }
         return Ok(updated)
     }
@@ -79,7 +79,7 @@ impl OrderRepository {
             })?;
 
         if deleted == 0 {
-            return Err(AppError::new("Book not found", ErrorType::NotFound))
+            return Err(AppError::new("Book not found", StatusCode::NOT_FOUND))
         }
 
         return Ok(deleted)

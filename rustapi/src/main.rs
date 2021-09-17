@@ -18,7 +18,8 @@ use rustapi::{establish_connection, DbPool};
 use crate::order_repository::OrderRepository;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use crate::errors::{handle_rejection, AppError, ErrorType};
+use crate::errors::{handle_rejection, AppError};
+use warp::http::StatusCode;
 
 #[tokio::main]
 async fn main() {
@@ -32,9 +33,7 @@ async fn main() {
         .await;
 }
 
-fn api_filters(
-    pool: DbPool
-) -> impl Filter<Extract=impl warp::Reply, Error=warp::Rejection> + Clone  {
+fn api_filters(pool: DbPool) -> impl Filter<Extract=impl warp::Reply, Error=warp::Rejection> + Clone  {
     warp::path!("v1" / ..)   // Add path prefix /api/v1 to all our routes
         .and(
             add_order(pool.clone())
@@ -45,9 +44,7 @@ fn api_filters(
         )
 }
 
-fn add_order(
-    pool: DbPool
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+fn add_order(pool: DbPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("orders")
         .and(warp::post())
         .and(with_db_access_manager(pool))
@@ -55,18 +52,14 @@ fn add_order(
         .and_then(order_service::add_order)
 }
 
-fn list_orders(
-    pool: DbPool
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+fn list_orders(pool: DbPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("orders")
         .and(warp::get())
         .and(with_db_access_manager(pool))
         .and_then(order_service::list_orders)
 }
 
-fn update_order(
-    pool: DbPool
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+fn update_order(pool: DbPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("orders" / String )
         .and(warp::put())
         .and(with_db_access_manager(pool))
@@ -74,18 +67,14 @@ fn update_order(
         .and_then(order_service::update)
 }
 
-fn delete_order(
-    pool: DbPool
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+fn delete_order(pool: DbPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("orders" / String )
         .and(warp::delete())
         .and(with_db_access_manager(pool))
         .and_then(order_service::delete_order)
 }
 
-fn get_order_by_id(
-    pool: DbPool
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+fn get_order_by_id(pool: DbPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("orders" / String )
         .and(warp::get())
         .and(with_db_access_manager(pool))
@@ -98,23 +87,11 @@ fn with_db_access_manager(pool: DbPool) -> impl Filter<Extract = (OrderRepositor
         .and_then(|pool: DbPool| async move {  match pool.get() {
             Ok(conn) => Ok(OrderRepository::new(conn)),
             Err(err) => Err(reject::custom(
-                AppError::new(format!("Error getting connection from pool: {}", err.to_string()).as_str(), ErrorType::Internal))
+                AppError::new(format!("Error getting connection from pool: {}", err.to_string()).as_str(), StatusCode::NOT_FOUND))
             ),
         }})
 }
 
-fn with_json_body<T: DeserializeOwned + Send>(
-) -> impl Filter<Extract = (T,), Error = warp::Rejection> + Clone {
+fn with_json_body<T: DeserializeOwned + Send>() -> impl Filter<Extract = (T,), Error = warp::Rejection> + Clone {
     warp::body::content_length_limit(1024 * 16).and(warp::body::json())
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub struct IdResponse {
-    pub id: String,
-}
-
-impl IdResponse {
-    pub fn new(id: String) -> IdResponse {
-        IdResponse { id }
-    }
 }
